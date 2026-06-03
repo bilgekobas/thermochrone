@@ -4,3 +4,4 @@ dist/
 .env.local
 *.local
 .DS_Store
+# docs/ is intentionally tracked — it's the GitHub Pages build output

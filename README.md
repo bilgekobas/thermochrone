@@ -93,12 +93,25 @@ All data sources are freely accessible without institutional subscriptions. The 
 ## Deployment
 
 Deployed as a static site on GitHub Pages. Requires Node.js 20+.
+Vite builds directly to `docs/` — no renaming step needed.
 
+**First time:**
 ```bash
 npm install
 npm run build
-# rename dist → docs, push to GitHub
-# Settings → Pages → Deploy from branch → master /docs
+git add .
+git commit -m "build"
+git push origin master
+```
+
+Then in your GitHub repo: **Settings → Pages → Source: Deploy from a branch → master / docs → Save.**
+
+**Subsequent updates:**
+```bash
+npm run build
+git add .
+git commit -m "update"
+git push origin master
 ```
 
 ### Optional: Cloudflare Worker (for Sentinel-3 LST)

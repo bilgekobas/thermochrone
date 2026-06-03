@@ -177,12 +177,23 @@ export default function App() {
       const pts = Object.keys(reachable).map(id=>res.nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
       return alphaShape(pts);
     });
+    // Ref A: young adult thermoneutral → Planning Gap (full deficit vs planning standard)
     const refRings = ISO_MINUTES.map(mins => {
       const reachable = dijkstra(res.lat, res.lon, res.nodes, res.graph, mins*60, 83/60);
       const pts = Object.keys(reachable).map(id=>res.nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
       return alphaShape(pts);
     });
-    setLostData(computeLostTerritory(refRings, thermalRings));
+    // Ref B: same group thermoneutral → isolates thermal penalty from demographic gap
+    const sameGroupRings = ISO_MINUTES.map(mins => {
+      const reachable = dijkstra(res.lat, res.lon, res.nodes, res.graph, mins*60, agG.baseSpeed/60);
+      const pts = Object.keys(reachable).map(id=>res.nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
+      return alphaShape(pts);
+    });
+    setLostData({
+      planningGap:    computeLostTerritory(refRings, thermalRings),
+      thermalPenalty: computeLostTerritory(sameGroupRings, thermalRings),
+      demographicGap: computeLostTerritory(refRings, sameGroupRings),
+    });
   }, []);
 
   const handleHourChange  = useCallback(i => { setSelectedHour(i); recomputeLive(result,i,selectedGroup,acclimatisation); }, [result,selectedGroup,acclimatisation,recomputeLive]);
@@ -289,12 +300,23 @@ export default function App() {
         const pts = Object.keys(reachable).map(id=>nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
         return alphaShape(pts);
       });
+      // Ref A: young adult thermoneutral
       const refRings = ISO_MINUTES.map(mins => {
         const reachable = dijkstra(lat, lon, nodes, graph, mins*60, 83/60);
         const pts = Object.keys(reachable).map(id=>nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
         return alphaShape(pts);
       });
-      const lost = computeLostTerritory(refRings, thermalRings);
+      // Ref B: same group thermoneutral
+      const sameGroupRings = ISO_MINUTES.map(mins => {
+        const reachable = dijkstra(lat, lon, nodes, graph, mins*60, agG.baseSpeed/60);
+        const pts = Object.keys(reachable).map(id=>nodes[id]).filter(Boolean).map(n=>[n.lon,n.lat]);
+        return alphaShape(pts);
+      });
+      const lost = {
+        planningGap:    computeLostTerritory(refRings, thermalRings),
+        thermalPenalty: computeLostTerritory(sameGroupRings, thermalRings),
+        demographicGap: computeLostTerritory(refRings, sameGroupRings),
+      };
 
       const res = {
         lat, lon, nodes, graph, svfMap, buildings, osmTrees, stlPolygons,
@@ -603,47 +625,47 @@ export default function App() {
               </div>
             </div>
 
-            {/* Lost territory */}
+            {/* Lost territory — three-metric decomposition */}
             {lostData && (
               <div style={{ padding:"12px 16px",
                 borderBottom:`1px solid ${C.border}`, background:C.bg }}>
-                <div style={{ fontSize:8, color:C.ink4, letterSpacing:"0.12em",
-                  marginBottom:6, fontWeight:500 }}>THERMALLY LOST TERRITORY</div>
-                <div style={{ display:"flex", alignItems:"baseline",
-                  gap:8, marginBottom:3 }}>
-                  <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700,
-                    fontSize:30, color:C.accent, lineHeight:1 }}>
-                    {lostData[2]?.lostPct}%
-                  </span>
-                  <span style={{ fontSize:10, color:C.ink2, lineHeight:1.3 }}>
-                    of 15-min city<br/>unreachable
-                  </span>
-                </div>
-                <div style={{ fontSize:9, color:C.ink4, marginBottom:8 }}>
-                  {formatArea(lostData[2]?.lostArea)} · {ag?.label}
-                </div>
-                {lostData.map((d,i) => (
-                  <div key={i} style={{ marginBottom:5 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between",
-                      alignItems:"center", marginBottom:2, fontSize:9 }}>
-                      <span style={{ color:C.accent, fontWeight:700,
-                        letterSpacing:"0.04em" }}>{ISO_MINUTES[i]} MIN</span>
-                      <span style={{ color:C.ink4 }}>
-                        {formatArea(d.thermalArea)} / {formatArea(d.refArea)}
-                      </span>
-                      <span style={{ fontWeight:600,
-                        color:d.lostPct>0?C.accent:C.ink3 }}>
-                        {d.lostPct>0?`-${d.lostPct}%`:"—"}
-                      </span>
-                    </div>
-                    <div style={{ background:C.bg3, borderRadius:1, height:3 }}>
-                      <div style={{ height:"100%",
-                        width:`${Math.max(0,100-d.lostPct)}%`,
-                        background:C.accent, opacity:0.5+i*0.2,
-                        borderRadius:1, transition:"width .4s" }}/>
-                    </div>
-                  </div>
-                ))}
+
+                {/* ── Planning Gap ── */}
+                <LostBlock
+                  label="PLANNING GAP"
+                  sublabel={`vs healthy young adult · thermoneutral`}
+                  description="How much smaller this person's city is vs the standard planning assumption"
+                  data={lostData.planningGap}
+                  barColor={C.accent}
+                  pctColor={C.accent}
+                  agLabel={ag?.label}
+                />
+
+                <div style={{ borderTop:`1px solid ${C.border}`, margin:"10px 0" }}/>
+
+                {/* ── Demographic Gap ── */}
+                <LostBlock
+                  label="DEMOGRAPHIC GAP"
+                  sublabel={`vs healthy young adult · same conditions`}
+                  description="Loss attributable to age and physiology alone, without heat"
+                  data={lostData.demographicGap}
+                  barColor={C.ink2}
+                  pctColor={C.ink2}
+                  agLabel={ag?.label}
+                />
+
+                <div style={{ borderTop:`1px solid ${C.border}`, margin:"10px 0" }}/>
+
+                {/* ── Thermal Penalty ── */}
+                <LostBlock
+                  label="THERMAL PENALTY"
+                  sublabel={`vs same group · thermoneutral`}
+                  description="Loss attributable to heat stress alone — climate cost only"
+                  data={lostData.thermalPenalty}
+                  barColor="#d97706"
+                  pctColor="#d97706"
+                  agLabel={ag?.label}
+                />
               </div>
             )}
 
@@ -814,6 +836,57 @@ export default function App() {
           </MethodSection>
         </Modal>
       )}
+    </div>
+  );
+}
+
+// ── LostBlock — reusable lost territory sub-panel ─────────────────────────
+function LostBlock({ label, sublabel, description, data, barColor, pctColor, agLabel }) {
+  const C = {
+    ink:"#111010", ink2:"#2E2B27", ink3:"#6B6560", ink4:"#A89E95",
+    border:"#CCC8BF", bg3:"#D9D4C9",
+  };
+  const ISO_MINUTES = [5, 10, 15];
+  if (!data) return null;
+  const total = data[2];
+  return (
+    <div>
+      <div style={{ fontSize:8, color:C.ink4, letterSpacing:"0.12em",
+        marginBottom:2, fontWeight:500 }}>{label}</div>
+      <div style={{ fontSize:8, color:C.ink4, marginBottom:5,
+        lineHeight:1.4 }}>{sublabel}</div>
+      <div style={{ display:"flex", alignItems:"baseline", gap:6, marginBottom:2 }}>
+        <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700,
+          fontSize:24, color:pctColor, lineHeight:1 }}>
+          {total?.lostPct ?? 0}%
+        </span>
+        <span style={{ fontSize:9, color:C.ink2 }}>of 15-min city</span>
+      </div>
+      <div style={{ fontSize:8, color:C.ink4, marginBottom:6 }}>
+        {description}
+      </div>
+      {data.map((d, i) => (
+        <div key={i} style={{ marginBottom:4 }}>
+          <div style={{ display:"flex", justifyContent:"space-between",
+            alignItems:"center", marginBottom:2, fontSize:9 }}>
+            <span style={{ color:pctColor, fontWeight:700,
+              letterSpacing:"0.04em" }}>{ISO_MINUTES[i]} MIN</span>
+            <span style={{ color:C.ink4 }}>
+              {formatArea(d.thermalArea)} / {formatArea(d.refArea)}
+            </span>
+            <span style={{ fontWeight:600,
+              color:d.lostPct > 0 ? pctColor : C.ink4 }}>
+              {d.lostPct > 0 ? `-${d.lostPct}%` : "—"}
+            </span>
+          </div>
+          <div style={{ background:C.bg3, borderRadius:1, height:3 }}>
+            <div style={{ height:"100%",
+              width:`${Math.max(0, 100 - d.lostPct)}%`,
+              background:barColor, opacity:0.45 + i * 0.2,
+              borderRadius:1, transition:"width .4s" }}/>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
