@@ -1,0 +1,8 @@
+name = "thermochrone-proxy"
+main = "proxy.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Set these as secrets, never here:
+# wrangler secret put SH_CLIENT_ID
+# wrangler secret put SH_CLIENT_SECRET
