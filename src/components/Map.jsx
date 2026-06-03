@@ -51,9 +51,17 @@ export default function MapComponent({
   useEffect(() => {
     if (!analysisResult || !leafletMap.current) return;
 
+    // Ensure map knows its correct size after LoadingScreen unmounts
+    leafletMap.current.invalidateSize();
+
     const { nodes, graph, svfMap, lat, lon } = analysisResult;
     const lg = layers.current;
-    Object.values(lg).forEach(l => l?.clearLayers());
+
+    // Re-add layer groups to map in case they were lost
+    Object.values(lg).forEach(l => {
+      if (l && !leafletMap.current.hasLayer(l)) l.addTo(leafletMap.current);
+      l?.clearLayers();
+    });
 
     const ag         = AGE_GROUPS.find(g => g.id === selectedGroup);
     if (!ag) return;
@@ -124,6 +132,9 @@ export default function MapComponent({
       icon: L.divIcon({ html:div.outerHTML, className:"", iconSize:[12,12], iconAnchor:[6,6] }),
       zIndexOffset:1000,
     }).addTo(lg.origin);
+
+    // Pan to clicked location at walking-scale zoom
+    leafletMap.current.setView([lat, lon], 14, { animate: true });
 
   }, [analysisResult, selectedGroup, acclimatisation, showRefYoung, showRefSameGroup, shadePrefer, utciVal, drawKey]);
 
