@@ -592,7 +592,7 @@ export default function App() {
         {result && !isLoading && (
           <div style={{ width:280, display:"flex", flexDirection:"column",
             borderLeft:`1px solid ${C.border}`, background:C.white,
-            overflowY:"auto", flexShrink:0 }}>
+            overflow:"hidden", flexShrink:0 }}>
 
             {/* UTCI */}
             <div style={{ padding:"14px 16px",
@@ -668,8 +668,8 @@ export default function App() {
                   sublabel={`vs same group · thermoneutral`}
                   description="Loss attributable to heat stress alone — climate cost only"
                   data={lostData.thermalPenalty}
-                  barColor={C.ink2}
-                  pctColor={C.ink2}
+                  barColor="#d97706"
+                  pctColor="#d97706"
                   agLabel={ag?.label}
                 />
               </div>
@@ -717,7 +717,7 @@ export default function App() {
             )}
 
             {/* Age group comparison */}
-            <div style={{ padding:"12px 16px" }}>
+            <div style={{ padding:"12px 16px", flex:1, overflowY:"auto" }}>
               <div style={{ fontSize:8, color:C.ink4, letterSpacing:"0.12em",
                 marginBottom:10, fontWeight:500 }}>
                 15-MIN RANGE · UTCI {liveUtci}°C
