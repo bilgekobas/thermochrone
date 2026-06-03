@@ -224,7 +224,9 @@ export default function App() {
       setResult(newRes);
       setSelectedHour(0);
       recomputeLive(newRes, 0, selectedGroup, acclimatisation);
-      requestAnimationFrame(() => setDrawKey(k => k + 1));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setDrawKey(k => k + 1))
+      );
     } catch(e) {
       setLoadStep(-1); setClimateLabel("");
       setError(`Climate fetch failed: ${e.message}`);
@@ -331,9 +333,11 @@ export default function App() {
       };
       setResult(res); setLiveUtci(utci); setLiveMrt(mrt);
       setLostData(lost); setSelectedHour(0); setLoadStep(-1);
-      // Defer drawKey increment one frame so LoadingScreen unmounts first
-      // and Leaflet container has correct dimensions
-      requestAnimationFrame(() => setDrawKey(k => k + 1));
+      // Double rAF: first frame React commits + LoadingScreen unmounts,
+      // second frame browser has painted and Leaflet container has correct dimensions
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setDrawKey(k => k + 1))
+      );
     } catch(e) {
       console.error(e);
       setError(`${e.message} — please try clicking again.`);

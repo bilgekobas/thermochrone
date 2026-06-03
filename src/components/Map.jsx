@@ -54,7 +54,24 @@ export default function MapComponent({
     // Ensure map knows its correct size after LoadingScreen unmounts
     leafletMap.current.invalidateSize();
 
-    const { nodes, graph, svfMap, lat, lon } = analysisResult;
+    // If container still has no size, retry after 100ms
+    const container = leafletMap.current.getContainer();
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      const timer = setTimeout(() => {
+        if (!leafletMap.current) return;
+        leafletMap.current.invalidateSize();
+        doDraw(analysisResult);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+
+    doDraw(analysisResult);
+  }, [analysisResult, selectedGroup, acclimatisation, showRefYoung, showRefSameGroup, shadePrefer, utciVal, drawKey]); // eslint-disable-line
+
+  function doDraw(ar) {
+    if (!ar || !leafletMap.current) return;
+
+    const { nodes, graph, svfMap, lat, lon } = ar;
     const lg = layers.current;
 
     // Re-add layer groups to map in case they were lost
@@ -63,7 +80,7 @@ export default function MapComponent({
       l?.clearLayers();
     });
 
-    const ag         = AGE_GROUPS.find(g => g.id === selectedGroup);
+    const ag = AGE_GROUPS.find(g => g.id === selectedGroup);
     if (!ag) return;
     const penalty    = thermalPenalty(utciVal, selectedGroup, acclimatisation);
     const effSpeedMs = ag.baseSpeed * (1 - penalty) / 60; // m/s
@@ -135,8 +152,7 @@ export default function MapComponent({
 
     // Pan to clicked location at walking-scale zoom
     leafletMap.current.setView([lat, lon], 14, { animate: true });
-
-  }, [analysisResult, selectedGroup, acclimatisation, showRefYoung, showRefSameGroup, shadePrefer, utciVal, drawKey]);
+  }
 
   return <div ref={mapDivRef} style={{ width:"100%", height:"100%" }} />;
 }
