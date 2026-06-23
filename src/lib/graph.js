@@ -74,10 +74,16 @@ export function computeNodeSVFs(nodes,graph,buildings,treePolygons,osmTrees) {
 export function dijkstra(startLat,startLon,nodes,graph,timeBudgetSec,effSpeedMs,
   svfMap=null,utci=17.5,shadePrefer=false) {
 
-  let nearest=null,nearestD=Infinity;
-  for (const [id,n] of Object.entries(nodes)) {
-    const d=haversine(startLat,startLon,n.lat,n.lon);
-    if (d<nearestD){nearestD=d;nearest=id;}
+  // Use the nearest WALKABLE graph node, not the nearest OSM node.
+  // `nodes` also contains building vertices, POIs, trees, etc.; many of those
+  // have no graph edges. If Dijkstra starts on one of them, reachable contains
+  // only the start point, so no isochrone polygon can be drawn.
+  let nearest = null, nearestD = Infinity;
+  for (const id of Object.keys(graph)) {
+    const n = nodes[id];
+    if (!n || !graph[id]?.length) continue;
+    const d = haversine(startLat, startLon, n.lat, n.lon);
+    if (d < nearestD) { nearestD = d; nearest = id; }
   }
   if (!nearest) return {};
 
