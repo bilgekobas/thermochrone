@@ -241,12 +241,14 @@ export default function App() {
       if (!inEU) { setError("Thermochrone covers EU / EEA cities only."); setLoadStep(-1); return; }
 
       setLoadStep(1);
-      const maxRadius = Math.max(...ISO_MINUTES) * 83 * 1.4;
+      const maxRadius = Math.max(...ISO_MINUTES) * 83 * 1.25;
+
+      // This is the expensive network request. The previous loading label made
+      // it look like the app was stuck while parsing buildings, but it was
+      // usually still waiting for Overpass and/or the Copernicus tree layer.
       setLoadStep(2);
-      const [osmData, stlPolygons] = await Promise.all([
-        fetchOSMData(lat, lon, maxRadius),
-        fetchCopernicusSTL(lat, lon, maxRadius),
-      ]);
+      const osmData = await fetchOSMData(lat, lon, maxRadius);
+
       setLoadStep(3);
       const { nodes, graph, buildings, osmTrees } = buildGraph(osmData.elements);
       setLoadStep(4);
@@ -254,8 +256,17 @@ export default function App() {
       const sol = solarGeometry(lat, lon, now);
       const fp  = sol.altDeg > 0 ? projectedAreaFactor(sol.altDeg) : 0;
       setLoadStep(5);
-      const svfMap    = computeNodeSVFs(nodes, graph, buildings, stlPolygons, osmTrees);
+      // Fast default path: Copernicus STL and node-by-node SVF are only needed
+      // for shade-preference routing. Origin SVF can be estimated from OSM
+      // buildings + OSM trees immediately.
+      let stlPolygons = [];
+      if (shadePrefer) {
+        stlPolygons = await fetchCopernicusSTL(lat, lon, maxRadius);
+      }
       const originSVF = computeSVF(lat, lon, buildings, stlPolygons, osmTrees);
+      const svfMap = shadePrefer
+        ? computeNodeSVFs(nodes, graph, buildings, stlPolygons, osmTrees)
+        : new Map();
 
       // Climate fetch
       setLoadStep(6);

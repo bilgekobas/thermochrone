@@ -2,11 +2,11 @@ import React from "react";
 
 export const STEPS = [
   { label:"Checking EU coverage" },
-  { label:"Fetching street network" },
-  { label:"Parsing building footprints" },
-  { label:"Fetching Copernicus tree layer" },
+  { label:"Preparing search radius" },
+  { label:"Fetching OSM streets, buildings & places" },
+  { label:"Building walkability graph" },
   { label:"Computing solar geometry" },
-  { label:"Computing sky view factors" },
+  { label:"Computing sky exposure" },
   { label:"Fetching climate data" },
   { label:"Fetching Sentinel-3 surface temp" },
   { label:"Computing MRT & UTCI" },
