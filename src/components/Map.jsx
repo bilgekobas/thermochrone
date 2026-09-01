@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import "@maplibre/maplibre-gl-leaflet"; // side effect: registers L.maplibreGL
 import { dijkstra, meanPathSVF } from "../lib/graph.js";
 import { alphaShape } from "../lib/alphashape.js";
 import { AGE_GROUPS, thermalPenalty } from "../lib/penalty.js";
@@ -116,8 +118,9 @@ export default function MapComponent({
   useEffect(() => {
     if (leafletMap.current) return;
     const map = L.map(mapDivRef.current, { zoomControl: false }).setView([48.137, 11.576], 14);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "© OpenStreetMap contributors © CARTO", maxZoom: 19,
+    L.maplibreGL({
+      style: "https://tiles.openfreemap.org/styles/positron",
+      attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors",
     }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     Object.keys(layers.current).forEach(k => {
